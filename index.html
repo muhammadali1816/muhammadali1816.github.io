@@ -1265,6 +1265,12 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      border: none;
+    }
+    #tv-yt-player iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
     }
     .tv-controls {
       position: absolute;
@@ -1849,9 +1855,8 @@
     <div class="tv-showreel reveal">
       <div class="tv-wrapper">
         <div class="tv-screen-area">
-          <video id="tv-video" class="tv-screen-video" autoplay muted playsinline>
-            <source src="Nationally%20recognized%20Projects%20and%20Awards/Governor%20Film%20Award/Ceremony%20Video.mp4" type="video/mp4" />
-          </video>
+          <video id="tv-video" class="tv-screen-video" autoplay muted playsinline></video>
+          <div id="tv-yt-player" class="tv-screen-video" style="display:none"></div>
         </div>
         <img src="istockphoto-1296751964-612x612-removebg-preview.png" class="tv-frame-img" alt="" />
         <div class="tv-controls">
@@ -1875,15 +1880,11 @@
       <div class="doc-section-title">Documentaries</div>
       <div class="doc-grid">
         <div class="doc-card">
-          <video class="doc-video" controls preload="metadata">
-            <source src="https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/APTMA_Documentary.mp4" type="video/mp4" />
-          </video>
+          <iframe class="doc-video" src="https://www.youtube.com/embed/ly2agup1CBk?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           <div class="doc-label">APTMA Documentary</div>
         </div>
         <div class="doc-card">
-          <video class="doc-video" controls preload="metadata">
-            <source src="https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/Ideal_School_Khanewal_Documentary.mp4" type="video/mp4" />
-          </video>
+          <iframe class="doc-video" src="https://www.youtube.com/embed/7Hp3urzweAc?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           <div class="doc-label">Ideal School Khanewal Documentary</div>
         </div>
       </div>
@@ -2070,63 +2071,71 @@
     navbar.classList.toggle('scrolled', window.scrollY > 40);
   });
 
-  // TV Showreel video cycling
+  // TV Showreel — dual player (local video + YouTube)
   const tvVideo = document.getElementById('tv-video');
+  const tvYtDiv = document.getElementById('tv-yt-player');
   const tvVideos = [
-    { src: 'Nationally%20recognized%20Projects%20and%20Awards/Governor%20Film%20Award/Ceremony%20Video.mp4', title: "Governor\u2019s Award \u2014 Ceremony" },
-    { src: 'Nationally%20recognized%20Projects%20and%20Awards/NASFF%20Film%20Award/Screening%20in%20front%20of%20Prime%20Minister.mp4', title: 'NASFF \u2014 Screening for Prime Minister' },
-    { src: 'Nationally%20recognized%20Projects%20and%20Awards/Higher%20Education%20Commission%20Song.mp4', title: 'Higher Education Commission Song' },
-    { src: 'https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/National_Award_Project_2.mp4', title: 'NASFF \u2014 National Award Project 2' },
-    { src: 'https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/National_Award_Project.mp4', title: "Governor\u2019s Award \u2014 National Project" },
-    { src: 'https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/APTMA_Documentary.mp4', title: 'APTMA Documentary' },
-    { src: 'https://github.com/muhammadali1816/muhammadali1816.github.io/releases/download/v1.0/Ideal_School_Khanewal_Documentary.mp4', title: 'Ideal School Khanewal Documentary' }
+    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/Governor%20Film%20Award/Ceremony%20Video.mp4', title: "Governor\u2019s Award \u2014 Ceremony" },
+    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/NASFF%20Film%20Award/Screening%20in%20front%20of%20Prime%20Minister.mp4', title: 'NASFF \u2014 Screening for Prime Minister' },
+    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/Higher%20Education%20Commission%20Song.mp4', title: 'Higher Education Commission Song' },
+    { type: 'yt', ytId: 'clJYjbEFlb8', title: 'NASFF \u2014 National Award Project 2' },
+    { type: 'yt', ytId: 'm-ChchIMFSA', title: "Governor\u2019s Award \u2014 National Project" },
+    { type: 'yt', ytId: 'ly2agup1CBk', title: 'APTMA Documentary' },
+    { type: 'yt', ytId: '7Hp3urzweAc', title: 'Ideal School Khanewal Documentary' }
   ];
   let tvIdx = 0;
+  let ytPlayer = null;
+  let ytReady = false;
   const tvDots = document.querySelectorAll('.tv-dot');
   const tvTitleEl = document.getElementById('tv-title');
 
-  function setTvVideo(idx) {
-    tvIdx = idx;
-    tvVideo.src = tvVideos[idx].src;
+  // Load YouTube IFrame API
+  var ytScript = document.createElement('script');
+  ytScript.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(ytScript);
+
+  window.onYouTubeIframeAPIReady = function() {
+    ytPlayer = new YT.Player('tv-yt-player', {
+      width: '100%', height: '100%',
+      playerVars: { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
+      events: {
+        onReady: () => { ytReady = true; if (tvVideos[tvIdx].type === 'yt') playYt(tvVideos[tvIdx].ytId); },
+        onStateChange: (e) => { if (e.data === YT.PlayerState.ENDED) setTvVideo((tvIdx + 1) % tvVideos.length); }
+      }
+    });
+  };
+
+  function playYt(ytId) {
+    tvVideo.style.display = 'none';
+    tvYtDiv.style.display = 'block';
+    if (ytReady) ytPlayer.loadVideoById({ videoId: ytId, suggestedQuality: 'hd720' });
+  }
+
+  function playLocal(src) {
+    tvYtDiv.style.display = 'none';
+    tvVideo.style.display = 'block';
+    tvVideo.src = src;
     tvVideo.load();
     tvVideo.play().catch(() => {});
-    if (tvTitleEl) tvTitleEl.textContent = tvVideos[idx].title;
+  }
+
+  function setTvVideo(idx) {
+    tvIdx = idx;
+    const v = tvVideos[idx];
+    if (tvTitleEl) tvTitleEl.textContent = v.title;
     tvDots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    if (v.type === 'yt') { playYt(v.ytId); }
+    else { playLocal(v.src); }
   }
 
-  if (tvVideo) {
-    tvVideo.addEventListener('ended', () => setTvVideo((tvIdx + 1) % tvVideos.length));
-    tvDots.forEach(dot => dot.addEventListener('click', () => setTvVideo(+dot.dataset.idx)));
-  }
+  // Start with first local video
+  tvVideo.style.display = 'block';
+  tvVideo.src = tvVideos[0].src;
+  tvVideo.load();
+  tvVideo.play().catch(() => {});
+  tvVideo.addEventListener('ended', () => setTvVideo((tvIdx + 1) % tvVideos.length));
+  tvDots.forEach(dot => dot.addEventListener('click', () => setTvVideo(+dot.dataset.idx)));
 
-  // Auto-generate documentary thumbnails via canvas (sequential to avoid bandwidth contention)
-  function capturePoster(vid) {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = vid.videoWidth || 640;
-      canvas.height = vid.videoHeight || 360;
-      canvas.getContext('2d').drawImage(vid, 0, 0, canvas.width, canvas.height);
-      const data = canvas.toDataURL('image/jpeg', 0.85);
-      if (data.length > 1000) vid.poster = data;
-    } catch(e) {}
-  }
-  function generateThumb(vid, onDone) {
-    if (vid.readyState >= 2) {
-      vid.currentTime = 0.5;
-      vid.addEventListener('seeked', () => { capturePoster(vid); if (onDone) onDone(); }, { once: true });
-    } else {
-      const go = () => { vid.currentTime = 0.5; vid.addEventListener('seeked', () => { capturePoster(vid); if (onDone) onDone(); }, { once: true }); };
-      vid.addEventListener('loadeddata', go, { once: true });
-      vid.preload = 'auto';
-      vid.load();
-    }
-  }
-  const docVids = Array.from(document.querySelectorAll('.doc-video'));
-  if (docVids.length) {
-    generateThumb(docVids[0], () => {
-      if (docVids[1]) generateThumb(docVids[1]);
-    });
-  }
 
   // Scroll reveal
   const observer = new IntersectionObserver((entries) => {
