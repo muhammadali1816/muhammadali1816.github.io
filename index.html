@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1855,8 +1855,7 @@
     <div class="tv-showreel reveal">
       <div class="tv-wrapper">
         <div class="tv-screen-area">
-          <video id="tv-video" class="tv-screen-video" autoplay muted playsinline></video>
-          <div id="tv-yt-player" class="tv-screen-video" style="display:none"></div>
+          <div id="tv-yt-player" class="tv-screen-video"></div>
         </div>
         <img src="istockphoto-1296751964-612x612-removebg-preview.png" class="tv-frame-img" alt="" />
         <div class="tv-controls">
@@ -2071,25 +2070,21 @@
     navbar.classList.toggle('scrolled', window.scrollY > 40);
   });
 
-  // TV Showreel — dual player (local video + YouTube)
-  const tvVideo = document.getElementById('tv-video');
-  const tvYtDiv = document.getElementById('tv-yt-player');
+  // TV Showreel - pure YouTube player
   const tvVideos = [
-    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/Governor%20Film%20Award/Ceremony%20Video.mp4', title: "Governor\u2019s Award \u2014 Ceremony" },
-    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/NASFF%20Film%20Award/Screening%20in%20front%20of%20Prime%20Minister.mp4', title: 'NASFF \u2014 Screening for Prime Minister' },
-    { type: 'local', src: 'Nationally%20recognized%20Projects%20and%20Awards/Higher%20Education%20Commission%20Song.mp4', title: 'Higher Education Commission Song' },
-    { type: 'yt', ytId: 'clJYjbEFlb8', title: 'NASFF \u2014 National Award Project 2' },
-    { type: 'yt', ytId: 'm-ChchIMFSA', title: "Governor\u2019s Award \u2014 National Project" },
-    { type: 'yt', ytId: 'ly2agup1CBk', title: 'APTMA Documentary' },
-    { type: 'yt', ytId: '7Hp3urzweAc', title: 'Ideal School Khanewal Documentary' }
+    { ytId: 'NqmS_-D2Tsg', title: "Governor's Award - Ceremony" },
+    { ytId: 'rFvuH0HaI1E', title: 'NASFF - Screening for Prime Minister' },
+    { ytId: 'O5ECrzBoyj4', title: 'Higher Education Commission Song' },
+    { ytId: 'clJYjbEFlb8', title: 'NASFF - National Award Project 2' },
+    { ytId: 'm-ChchIMFSA', title: "Governor's Award - National Project" },
+    { ytId: 'ly2agup1CBk', title: 'APTMA Documentary' },
+    { ytId: '7Hp3urzweAc', title: 'Ideal School Khanewal Documentary' }
   ];
   let tvIdx = 0;
   let ytPlayer = null;
-  let ytReady = false;
   const tvDots = document.querySelectorAll('.tv-dot');
   const tvTitleEl = document.getElementById('tv-title');
 
-  // Load YouTube IFrame API
   var ytScript = document.createElement('script');
   ytScript.src = 'https://www.youtube.com/iframe_api';
   document.head.appendChild(ytScript);
@@ -2097,43 +2092,22 @@
   window.onYouTubeIframeAPIReady = function() {
     ytPlayer = new YT.Player('tv-yt-player', {
       width: '100%', height: '100%',
+      videoId: tvVideos[0].ytId,
       playerVars: { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1 },
       events: {
-        onReady: () => { ytReady = true; if (tvVideos[tvIdx].type === 'yt') playYt(tvVideos[tvIdx].ytId); },
         onStateChange: (e) => { if (e.data === YT.PlayerState.ENDED) setTvVideo((tvIdx + 1) % tvVideos.length); }
       }
     });
   };
-
-  function playYt(ytId) {
-    tvVideo.style.display = 'none';
-    tvYtDiv.style.display = 'block';
-    if (ytReady) ytPlayer.loadVideoById({ videoId: ytId, suggestedQuality: 'hd720' });
-  }
-
-  function playLocal(src) {
-    tvYtDiv.style.display = 'none';
-    tvVideo.style.display = 'block';
-    tvVideo.src = src;
-    tvVideo.load();
-    tvVideo.play().catch(() => {});
-  }
 
   function setTvVideo(idx) {
     tvIdx = idx;
     const v = tvVideos[idx];
     if (tvTitleEl) tvTitleEl.textContent = v.title;
     tvDots.forEach((d, i) => d.classList.toggle('active', i === idx));
-    if (v.type === 'yt') { playYt(v.ytId); }
-    else { playLocal(v.src); }
+    if (ytPlayer) ytPlayer.loadVideoById({ videoId: v.ytId });
   }
 
-  // Start with first local video
-  tvVideo.style.display = 'block';
-  tvVideo.src = tvVideos[0].src;
-  tvVideo.load();
-  tvVideo.play().catch(() => {});
-  tvVideo.addEventListener('ended', () => setTvVideo((tvIdx + 1) % tvVideos.length));
   tvDots.forEach(dot => dot.addEventListener('click', () => setTvVideo(+dot.dataset.idx)));
 
 
